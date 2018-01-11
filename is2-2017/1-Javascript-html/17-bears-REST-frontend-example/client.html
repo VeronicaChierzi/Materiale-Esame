@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bears application front-end</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+<script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a class="brand" href="#">Bears application front-end</a>
+        </div>
+    </div>
+
+    <div id="main" class="container">
+        <table class="table table-striped">
+            <tr>
+                <td><b>Bears</b></td>
+                <td><b>Options</b></td></tr>
+            <!-- ko foreach: bears -->
+            <tr>
+                <td><p><b data-bind="text: name"></b></p></td>
+                <td>
+                    <button data-bind="click: $parent.beginEdit" class="btn">Edit</button>
+                    <button data-bind="click: $parent.remove" class="btn">Delete</button>
+                </td>
+            </tr>
+            <!-- /ko -->
+        </table>
+        <button data-bind="click: beginAdd" class="btn">Add Bear</button>
+    </div>
+
+    <div id="add" class="modal hide fade" tabindex="=1" role="dialog" aria-labelledby="addDialogLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="addDialogLabel">Add Bear</h3>
+        </div>
+        <div class="modal-body">
+            <form class="form-horizontal">
+                <div class="control-group">
+                    <label class="control-label" for="inputBear">Bear</label>
+                    <div class="controls">
+                        <input data-bind="value: name" type="text" id="inputBear" placeholder="Bear name" style="width: 150px;">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button data-bind="click: addBear" class="btn btn-primary">Add Bear</button>
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        </div>
+    </div>
+
+    <div id="edit" class="modal hide fade" tabindex="=1" role="dialog" aria-labelledby="editDialogLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="editDialogLabel">Add Bear</h3>
+        </div>
+        <div class="modal-body">
+            <form class="form-horizontal">
+                <div class="control-group">
+                    <label class="control-label" for="inputBear">Bear</label>
+                    <div class="controls">
+                        <input data-bind="value: name" type="text" id="inputBear" placeholder="Bear name" style="width: 150px;">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button data-bind="click:editBear" class="btn btn-primary">Update Bear</button>
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        function bearsViewModel() {
+            var self = this;
+            self.bearsURI = 'https://is2-bears.herokuapp.com/api/bears';
+            self.bears = ko.observableArray();
+            self.ajax = function(uri, method, data) {
+                var request = {
+                    url: uri,
+                    type: method,
+                    contentType: "application/json",
+                    accepts: "application/json",
+                    cache: false,
+                    dataType: 'json',
+                    data: JSON.stringify(data),
+                    error: function(jqXHR) {
+                        console.log("ajax error " + jqXHR.status);
+                    }
+                };
+                return $.ajax(request);
+            }
+            self.beginAdd = function() {
+                $('#add').modal('show');
+            }
+            self.add = function(bear) {
+                self.ajax(self.bearsURI, 'POST', bear).done(function(data) {
+                    self.bears.push({
+                        uri: ko.observable(self.bearsURI + '/' + data._id),
+                        name: ko.observable(data.name)
+                    });
+                });
+            }
+            self.beginEdit = function(bear) {
+                editBearViewModel.setBear(bear);
+                $('#edit').modal('show');
+            }
+            self.edit = function(bear, data) {
+                self.ajax(bear.uri(), 'PUT', data).done(function(data) {
+                    var i = self.bears.indexOf(bear);
+                    self.bears()[i].name(data.name);
+                });
+            }
+            self.remove = function(bear) {
+                self.ajax(bear.uri(), 'DELETE').done(function() {
+                    self.bears.remove(bear);
+                });
+            }
+            
+            self.ajax(self.bearsURI, 'GET').done(function(data) {
+                for (var i = 0; i < data.length; i++) {
+                    self.bears.push({
+                        uri: ko.observable(self.bearsURI + '/' + data[i]._id),
+                        name: ko.observable(data[i].name)
+                    });
+                }
+            }).fail(function(jqXHR) {
+                console.log('error ' + jqXHR.status);
+                alert('error ' + jqXHR.status);
+            });
+            
+        }
+        function AddBearViewModel() {
+            var self = this;
+            self.name = ko.observable();
+ 
+            self.addBear = function() {
+                $('#add').modal('hide');
+                bearsViewModel.add({
+                    name: self.name()
+                });
+                self.name("");
+            }
+        }
+        function EditBearViewModel() {
+            var self = this;
+            self.name = ko.observable();
+ 
+            self.setBear = function(bear) {
+                self.bear = bear;
+                self.name(bear.name());
+                $('edit').modal('show');
+            }
+ 
+            self.editBear = function() {
+                $('#edit').modal('hide');
+                bearsViewModel.edit(self.bear, {
+                    name: self.name()
+                });
+            }
+        }
+                
+        var bearsViewModel = new bearsViewModel();
+        var addBearViewModel = new AddBearViewModel();
+        var editBearViewModel = new EditBearViewModel();
+        
+        ko.applyBindings(bearsViewModel, $('#main')[0]);
+        ko.applyBindings(addBearViewModel, $('#add')[0]);
+        ko.applyBindings(editBearViewModel, $('#edit')[0]);
+    </script>
+</body>
+</html>
