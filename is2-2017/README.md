@@ -17,6 +17,10 @@ Questo repository contiene dei piccoli esempi con difficolta' progressiva utili 
 - GitHub
 - GitHub Pages
 
+## NPM INSTALL BASE
+
+npm install --save node-fetch node-fetch-json express body-parser jest
+
 ## Risorse online
 
 JavaScript:
